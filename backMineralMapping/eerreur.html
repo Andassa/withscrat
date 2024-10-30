@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<title>Error</title>
+</head>
+
+<body>
+	<pre>TypeError: res.send is not a function<br> &nbsp; &nbsp;at C:\Users\AnjaNali\Documents\stage\node\index.js:113:9<br> &nbsp; &nbsp;at Layer.handle [as handle_request] (C:\Users\AnjaNali\Documents\stage\node\node_modules\express\lib\router\layer.js:95:5)<br> &nbsp; &nbsp;at next (C:\Users\AnjaNali\Documents\stage\node\node_modules\express\lib\router\route.js:144:13)<br> &nbsp; &nbsp;at Route.dispatch (C:\Users\AnjaNali\Documents\stage\node\node_modules\express\lib\router\route.js:114:3)<br> &nbsp; &nbsp;at Layer.handle [as handle_request] (C:\Users\AnjaNali\Documents\stage\node\node_modules\express\lib\router\layer.js:95:5)<br> &nbsp; &nbsp;at C:\Users\AnjaNali\Documents\stage\node\node_modules\express\lib\router\index.js:284:15<br> &nbsp; &nbsp;at Function.process_params (C:\Users\AnjaNali\Documents\stage\node\node_modules\express\lib\router\index.js:346:12)<br> &nbsp; &nbsp;at next (C:\Users\AnjaNali\Documents\stage\node\node_modules\express\lib\router\index.js:280:10)<br> &nbsp; &nbsp;at SessionStrategy.strategy.pass (C:\Users\AnjaNali\Documents\stage\node\node_modules\passport\lib\middleware\authenticate.js:346:9)<br> &nbsp; &nbsp;at SessionStrategy.authenticate (C:\Users\AnjaNali\Documents\stage\node\node_modules\passport\lib\strategies\session.js:75:10)</pre>
+</body>
+
+</html>
+
+app.get('/get-session-data', (req, res) => {
+    const username = req.session.id || 'Not set';
+    res.send(`Username from session: ${username}`);
+});
+//lister les roles 
+app.get('/getroles', (req, res) => {
+    pool.query('SELECT * FROM roles', (error, results) => {
+        if (error) {
+            console.error(error);
+            res.status(500).send('Erreur de base de données');
+        } else {
+            res.json(results.rows);
+        }
+    });
+});
+//insertion de donnée subsances pour venant de la table substances
+app.get('/insertdonnees', (req, res) => {
+    pool.query('SELECT * FROM substances', (error, results) => {
+        if (error) {
+            console.error(error);
+            res.status(500).send('Erreur de base de données');
+        } else {
+            let stock = [];
+
+            results.rows.forEach(substance => {
+                let substancesToAdd = [];
+
+                if (substance.nom.includes(",")) {
+                    substancesToAdd = substance.nom.split(", ");
+                } else {
+                    substancesToAdd = [substance.nom];
+                }
+
+                substancesToAdd.forEach(subs => {
+                    if (!stock.includes(subs)) {
+                        stock.push(subs);
+                    }
+                });
+            });
+            var message = "pas okay";
+            stock.forEach(element1 => {
+                pool.query('INSERT INTO lessubstances (nom) VALUES ($1)', [element1], (err) => {
+                    if (err) {
+                        console.error(err);
+                        res.send('Erreur lors de l\'inscription');
+                    } else {
+                        message = "c'est okay";
+                    }
+                });
+            });
+            res.send(message);
+        }
+    });
+});
+app.get('/dashboard', (req, res) => {
+    // Vérifiez si l'utilisateur est authentifié
+    if (req.isAuthenticated()) {
+        res.send('Tableau de bord protégé');
+    } else {
+        req.flash('error', 'Accès refusé. Veuillez vous connecter.');
+        res.redirect('/login');
+    }
+});
+
+//index (login normalement)
+app.get('/', (req, res) => {
+    res.send('Hello, world!');
+});
+
