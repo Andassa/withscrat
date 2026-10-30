@@ -30,10 +30,14 @@ router.post('/decision/conflits', async (req, res) => {
         if (!geojson && req.body.listeCarre) {
             geojson = createMultiPolygonGeoJSON(req.body.listeCarre);
         }
-        if (!geojson) {
-            return res.status(400).json({ erreur: 'geojson ou listeCarre requis' });
+        if (!geojson || !geojson.coordinates?.length) {
+            return res.status(400).json({ erreur: 'geojson ou listeCarre valide requis' });
         }
-        const result = await detectConflitsPermis(geojson, { limit: req.body.limit });
+        const result = await detectConflitsPermis(geojson, {
+            limit: req.body.limit,
+            layer: req.body.layer,
+            blockingOverlapM2: req.body.blockingOverlapM2,
+        });
         return res.json(result);
     } catch (error) {
         console.error(error);

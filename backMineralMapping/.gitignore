@@ -9,4 +9,5 @@ basededonnée/permis_625_*.sql
 basededonnée/restore_log.txt
 basededonnée/backups/
 uploads/terrain/
+uploads/dossiers/
 .DS_Store

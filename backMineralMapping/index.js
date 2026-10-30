@@ -35,6 +35,7 @@ const MapController = require('./controllers/MapController');
 const PermiController = require('./controllers/PermiController');
 const analyse = require('./controllers/analyseController');
 const decision = require('./controllers/decisionController');
+const instruction = require('./controllers/instructionController');
 
 const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3001,http://127.0.0.1:3001')
     .split(',')
@@ -126,6 +127,8 @@ app.use('/api', MapController);
 app.use('/api', analyse);
 app.use('/api', decision);
 app.use('/', decision);
+app.use('/api', instruction);
+app.use('/', instruction);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

@@ -161,6 +161,88 @@ async function main() {
         fail('checklist_api', e.message);
     }
 
+    // 8) Instruction — list + create dossier
+    try {
+        const list = await req('/api/instruction/dossiers', { cookie });
+        if (list.status === 200 && Array.isArray(list.json.dossiers || list.json)) {
+            ok('instruction_list');
+        } else {
+            fail('instruction_list', `status=${list.status} ${JSON.stringify(list.json).slice(0, 160)}`);
+        }
+    } catch (e) {
+        fail('instruction_list', e.message);
+    }
+
+    try {
+        const created = await req('/api/instruction/dossiers', {
+            method: 'POST',
+            cookie,
+            body: JSON.stringify({
+                titre: `Smoke ${Date.now()}`,
+                demandeur: 'Smoke Tester',
+                payload: { source: 'smoke' },
+            }),
+        });
+        if ((created.status === 200 || created.status === 201) && created.json.ok && created.json.dossier?.id) {
+            ok(`instruction_create (id=${created.json.dossier.id})`);
+        } else {
+            fail('instruction_create', `status=${created.status} ${JSON.stringify(created.json).slice(0, 160)}`);
+        }
+    } catch (e) {
+        fail('instruction_create', e.message);
+    }
+
+    // 9) Validation métier — fixtures + feedback list
+    try {
+        const fx = await req('/api/validation/fixtures', { cookie });
+        if (fx.status === 200 && Array.isArray(fx.json.results) && typeof fx.json.total === 'number') {
+            ok(`validation_fixtures (${fx.json.passed}/${fx.json.total})`);
+        } else {
+            fail('validation_fixtures', `status=${fx.status} ${JSON.stringify(fx.json).slice(0, 160)}`);
+        }
+    } catch (e) {
+        fail('validation_fixtures', e.message);
+    }
+
+    try {
+        const fb = await req('/api/validation/feedback', { cookie });
+        if (fb.status === 200 && Array.isArray(fb.json.feedback)) ok('validation_feedback_list');
+        else fail('validation_feedback_list', `status=${fb.status} ${JSON.stringify(fb.json).slice(0, 160)}`);
+    } catch (e) {
+        fail('validation_feedback_list', e.message);
+    }
+
+    // 10) Conflits avec couche + seuil (petit polygone Madagascar)
+    try {
+        const cf = await req('/api/decision/conflits', {
+            method: 'POST',
+            cookie,
+            body: JSON.stringify({
+                geojson: {
+                    type: 'MultiPolygon',
+                    coordinates: [[
+                        [
+                            [47.5, -18.9],
+                            [47.51, -18.9],
+                            [47.51, -18.91],
+                            [47.5, -18.91],
+                            [47.5, -18.9],
+                        ],
+                    ]],
+                },
+                layer: 'permis_shp',
+                blockingOverlapM2: 100,
+            }),
+        });
+        if (cf.status === 200 && typeof cf.json.count === 'number') {
+            ok(`conflits_layer_seuil (count=${cf.json.count})`);
+        } else {
+            fail('conflits_layer_seuil', `status=${cf.status} ${JSON.stringify(cf.json).slice(0, 160)}`);
+        }
+    } catch (e) {
+        fail('conflits_layer_seuil', e.message);
+    }
+
     if (fails.length) {
         console.error(`\nSmoke: ${fails.length} échec(s)`);
         process.exit(1);
