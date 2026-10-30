@@ -39,13 +39,13 @@ async function main() {
         fails.push(name);
     };
 
-    // 1) Health: type permis sans auth → 401 ou liste selon route
+    // 1) Health
     try {
-        const health = await req('/');
-        if (health.status >= 500) fail('server_up', `status ${health.status}`);
-        else ok(`server_up (${health.status})`);
+        const health = await req('/health');
+        if (health.status === 200 && health.json.ok) ok('health');
+        else fail('health', `status ${health.status}`);
     } catch (e) {
-        fail('server_up', e.message);
+        fail('health', e.message);
         console.error('Serveur injoignable. Lancez: npm start dans backMineralMapping');
         process.exit(1);
     }
@@ -77,6 +77,15 @@ async function main() {
         }
     } catch (e) {
         fail('dashboard_stats', e.message);
+    }
+
+    // 3b) Couche permis
+    try {
+        const layer = await req('/utilisateur/permisLayer', { cookie });
+        if (layer.status === 200 && layer.json.layer) ok(`permis_layer (${layer.json.layer})`);
+        else fail('permis_layer', `status=${layer.status}`);
+    } catch (e) {
+        fail('permis_layer', e.message);
     }
 
     // 4) Historique
@@ -130,6 +139,26 @@ async function main() {
         }
     } catch (e) {
         fail('hors_decoupe_reject', e.message);
+    }
+
+    // 7) Checklist API
+    try {
+        const cl = await req('/api/decision/checklist', {
+            method: 'POST',
+            cookie,
+            body: JSON.stringify({
+                donneesTableau: {
+                    nomPersonne: 'Smoke',
+                    selectPermis: 1,
+                    listeCarre: [{ etat: 0 }],
+                    choixSubs: [1],
+                },
+            }),
+        });
+        if (cl.status === 200 && cl.json.ok === true) ok('checklist_api');
+        else fail('checklist_api', `status=${cl.status}`);
+    } catch (e) {
+        fail('checklist_api', e.message);
     }
 
     if (fails.length) {

@@ -1,10 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../database.js');
 const { getCoordinatesByPermis, getPermisGeometries } = require('./service/mapService');
 
-
-// Récupérer les coordonnées GPS d'un permis
 router.get('/utilisateur/getCoordinates/:id', async (req, res) => {
     try {
         const coordinates = await getCoordinatesByPermis(req.params.id);
@@ -14,12 +11,10 @@ router.get('/utilisateur/getCoordinates/:id', async (req, res) => {
     }
 });
 
-
 router.get('/utilisateur/getPermisGeometries', async (req, res) => {
     try {
-        console.log('Appel de la fonction getPermisGeometries');
-        const permis = await getPermisGeometries();
-        console.log('Données reçues:', permis);
+        const limit = req.query.limit;
+        const permis = await getPermisGeometries(limit);
         res.json(permis);
     } catch (error) {
         console.error('Erreur lors de la récupération des géométries de permis:', error);

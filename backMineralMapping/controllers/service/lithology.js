@@ -1,22 +1,20 @@
-//pour faire l'analyse de données par rapport au résultats des intersections
-const pool = require('../../database.js'); // Importez la configuration de la base de données
+const pool = require('../../database.js');
 
-const getLitho = async (requete) => {
-    return new Promise((resolve, reject) => {
-        var request = "select lithology, mot1 , mot2 FROM geol g WHERE ST_Intersects(ST_SetSRID(ST_Buffer(ST_MakeValid(g.geom), 0), 4326),ST_SetSRID(ST_Buffer(ST_MakeValid(";
-        request = request + requete;
-        request = request + "), 0), 4326)) ";
-        pool.query(request, (error, resultat) => {
-            if (error) {
-                console.error(error);
-                reject('Erreur de base de données');
-            } else {
-                resolve(resultat.rows);
-            }
-        });
-    });
-};
+/**
+ * Intersection lithologie (geol) avec une zone GeoJSON.
+ */
+async function getLitho(geojson) {
+    const payload = typeof geojson === 'string' ? geojson : JSON.stringify(geojson);
+    const result = await pool.query(
+        `SELECT lithology, mot1, mot2
+         FROM geol g
+         WHERE ST_Intersects(
+            ST_SetSRID(ST_MakeValid(g.geom), 4326),
+            ST_SetSRID(ST_MakeValid(ST_GeomFromGeoJSON($1)), 4326)
+         )`,
+        [payload]
+    );
+    return result.rows;
+}
 
-module.exports = {
-    getLitho
-};
+module.exports = { getLitho };

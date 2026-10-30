@@ -1,61 +1,59 @@
-const pool = require('../../database.js'); // Importez la configuration de la base de données
+const pool = require('../../database.js');
 
-// get intersection point where subs 
-// select intersection point where point intersect perimètre where subs ilike 'subs'
-// get intersection ligne 
-// get intersection zone 
+/**
+ * Indice de présence (1–4), PAS une probabilité :
+ * 1 = aucun type, puis +1 par famille touchée (point / line / zone).
+ */
+async function intersectTable(geojsonPayload, table, substance) {
+    const allowed = new Set(['indice_point', 'indice_line', 'indice_zone']);
+    if (!allowed.has(table)) {
+        throw new Error(`Table indices non autorisée: ${table}`);
+    }
+    const result = await pool.query(
+        `SELECT EXISTS (
+            SELECT 1
+            FROM ${table} il
+            WHERE ST_Intersects(
+                    ST_SetSRID(ST_MakeValid(il.geom), 4326),
+                    ST_SetSRID(ST_MakeValid(ST_GeomFromGeoJSON($1)), 4326)
+                  )
+              AND il.nom ILIKE $2
+         ) AS ok`,
+        [geojsonPayload, `%${substance}%`]
+    );
+    return result.rows[0]?.ok === true;
+}
 
-const intersect = async (requete, table, substance) => {
-    return new Promise((resolve, reject) => {
-        var intersect = "ST_Intersects(ST_SetSRID(ST_Buffer(ST_MakeValid(il.geom), 0), 4326), ST_SetSRID(ST_Buffer(ST_MakeValid(" + requete + "), 0), 4326))";
+async function unePresence(geojsonPayload, substance) {
+    const details = {
+        point: await intersectTable(geojsonPayload, 'indice_point', substance),
+        line: await intersectTable(geojsonPayload, 'indice_line', substance),
+        zone: await intersectTable(geojsonPayload, 'indice_zone', substance),
+    };
+    let presenceIndice = 1;
+    if (details.point) presenceIndice += 1;
+    if (details.line) presenceIndice += 1;
+    if (details.zone) presenceIndice += 1;
+    return { presenceIndice, probIndice: presenceIndice, indicesDetails: details };
+}
 
-        var request = "select ";
-        request = request + intersect + " FROM " + table + " il WHERE "; // indice_point / indice_zone / indice_line
-        request = request + intersect;
-        request = request + " and il.nom ilike '%" + substance + "%'";
+async function lesPresencesIndices(geojson, substances) {
+    const payload = typeof geojson === 'string' ? geojson : JSON.stringify(geojson);
+    const results = [];
+    for (const row of substances) {
+        const nom = row[0]?.nom || row.nom;
+        const presence = await unePresence(payload, nom);
+        results.push({ subs: nom, ...presence });
+    }
+    return results;
+}
 
-        pool.query(request, (error, resultat) => {
-            if (error) {
-                console.error(error);
-                reject('Erreur de base de données');
-            } else {
-                if (resultat.rows.length === 0) {
-                    resolve(false);
-                } else {
-                    resolve(true);
-                }
-            }
-        });
-
-    });
-};
-
-const uneProbabilité = async (requete, substance) => {
-    return new Promise(async (resolve, reject) => {
-        var indice = ['indice_point', 'indice_line', 'indice_zone'];
-        var prob = 1;
-        for (let index = 0; index < indice.length; index++) {
-            if (await intersect(requete, indice[index], substance) === true) {
-                prob = prob + 1;
-            }
-        }
-        resolve(prob);
-    });
-};
-
-const lesProbabilité = async (requete, substances) => {
-    const promesses = substances.map(subs => ({
-        subs: subs[0].nom,
-        probIndice: uneProbabilité(requete, subs[0].nom)
-    }));
-    const res = await Promise.all(promesses.map(p => p.probIndice));
-    return promesses.map((p, index) => ({ ...p, probIndice: res[index] }));
-};
-
-
+/** Compat anciens appels */
+const lesProbabilité = lesPresencesIndices;
 
 module.exports = {
-    intersect,
-    uneProbabilité,
-    lesProbabilité
+    intersectTable,
+    unePresence,
+    lesPresencesIndices,
+    lesProbabilité,
 };
