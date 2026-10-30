@@ -89,7 +89,7 @@ function MapPage(props) {
       return;
     }
     if (conflits?.bloquant) {
-      setConfirmation({ error: 'Conflits bloquants détectés — corrigez la zone ou justifiez en instruction' });
+      setConfirmation({ error: 'Conflits bloquants détectés. Corrigez la zone ou justifiez en instruction.' });
       return;
     }
     setConfirmation({ valide: 'confirmation valide' });
@@ -128,8 +128,8 @@ function MapPage(props) {
             setInstructionRef(null);
           }
           setSuccessMsg(payload.conflits?.bloquant
-            ? 'Évalué — conflits BLOQUANTS (dossier créé en brouillon)'
-            : 'Évaluation terminée — dossier d\'instruction créé');
+            ? 'Évalué. Conflits bloquants (dossier créé en brouillon).'
+            : 'Évaluation terminée. Dossier d\'instruction créé.');
           setMisokatra(true);
         })
         .catch((error) => {
@@ -199,16 +199,6 @@ function MapPage(props) {
     </React.Fragment>
   );
 
-  const { taille } = props;
-  const [style1, setStyle1] = useState({ width: '57vw', height: '90vh', position: 'fixed' });
-  const [style2, setStyle2] = useState({ width: '40vw', height: '100vh', overflowY: 'scroll', marginLeft: '57vw' });
-  useEffect(() => {
-    if (taille === 0) {
-      setStyle1({ width: '45vw', height: '90vh', position: 'fixed' });
-      setStyle2({ width: '40vw', height: '100vh', overflowY: 'scroll', marginLeft: '45vw' });
-    }
-  }, [taille]);
-
   useEffect(() => {
     if (selectPermis.id === 3 || selectPermis.id === 2) {
       setEtatPermis(
@@ -227,35 +217,70 @@ function MapPage(props) {
   }, [selectPermis, selectedValue]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', width: '97vw', height: '100vh' }}>
-      <div style={style1}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'row',
+        width: '100%',
+        height: '100%',
+        minHeight: 0,
+        overflow: 'hidden',
+        bgcolor: '#F4F6F9',
+      }}
+    >
+      <Box sx={{ flex: '1 1 58%', minWidth: 0, height: '100%', position: 'relative' }}>
         <CarteLeaflet
           decoupeAffiche={decoupeAffiche}
           listeCarre={listeCarre}
           carreSelect={carreSelect}
           conflitsGeoms={conflits?.conflits || []}
         />
-      </div>
-      <div style={style2}>
-        <div style={{ padding: '15px' }}>
-          <Typography variant="h5" gutterBottom style={{ color: 'blue' }} textAlign="center">
-            Aide à la décision — permis
+      </Box>
+      <Box
+        sx={{
+          flex: '0 0 min(420px, 42%)',
+          width: { xs: '100%', md: 'min(420px, 42%)' },
+          height: '100%',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          borderLeft: '1px solid #E2E8F0',
+          bgcolor: '#fff',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <Box sx={{ p: 2, borderBottom: '1px solid #E2E8F0' }}>
+          <Typography variant="h6" sx={{ color: '#1B4F8A', fontWeight: 700, fontSize: 18 }}>
+            Aide à la décision
           </Typography>
-          <hr />
-          <div style={{ padding: '20px' }}>
-            <InputInfo nomPersonne={nomPersonne} setNomPersonne={setNomPersonne} selectPermis={selectPermis} setSelectPermis={setSelectPermis} />
-            {etatPermis}
-          </div>
-        </div>
+          <Typography variant="body2" sx={{ color: '#64748B', mt: 0.5 }}>
+            Formulaire permis et contrôles
+          </Typography>
+        </Box>
+        <Box sx={{ px: 2, pt: 2 }}>
+          <InputInfo nomPersonne={nomPersonne} setNomPersonne={setNomPersonne} selectPermis={selectPermis} setSelectPermis={setSelectPermis} />
+          {etatPermis}
+        </Box>
         <AccordeonListeCentre listeCentre={listeCentre} setListeCarre={setListeCarre} setListeCentre={setListeCentre} setCarreSelect={setCarreSelect} decoupeAffiche={decoupeAffiche} setNomFichier={setNomFichier} />
         <ListeSubstance setChoixSubs={setChoixSubs} />
-        <div style={{ padding: '0 12px 80px' }}>
+        <Box sx={{ px: 2, pb: 2 }}>
           <AssistantChecklist donneesTableau={donneesTableau} localChecks={localChecks} />
           <ConflitsPanel listeCarre={listeCarre} conflits={conflits} onConflits={setConflits} />
           <ScenarioSuggestions donneesTableau={donneesTableau} onScenarioResult={onScenarioResult} />
           <AnalyseKrigeage choixSubs={choixSubs} />
-        </div>
-        <div style={{ float: 'right', padding: 12 }}>
+        </Box>
+        <Box
+          sx={{
+            mt: 'auto',
+            p: 2,
+            borderTop: '1px solid #E2E8F0',
+            bgcolor: '#fff',
+            position: 'sticky',
+            bottom: 0,
+            display: 'flex',
+            justifyContent: 'flex-end',
+          }}
+        >
           {boutton}
           <Snackbar open={open} onClose={() => setState({ ...state, open: false })} anchorOrigin={{ vertical, horizontal }}>
             <Alert severity="error" variant="filled">ERREUR : {confirmation.error}</Alert>
@@ -263,9 +288,9 @@ function MapPage(props) {
           <Snackbar open={Boolean(successMsg)} autoHideDuration={5000} onClose={() => setSuccessMsg('')} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
             <Alert severity="success" variant="filled" onClose={() => setSuccessMsg('')}>{successMsg}</Alert>
           </Snackbar>
-        </div>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 }
 

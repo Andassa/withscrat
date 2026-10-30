@@ -6,28 +6,18 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
-import InboxIcon from '@mui/icons-material/MoveToInbox';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import MailIcon from '@mui/icons-material/Mail';
 import MenuIcon from '@mui/icons-material/Menu';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-
-import Slide from '@mui/material/Slide';
-import useScrollTrigger from '@mui/material/useScrollTrigger';
-import Container from '@mui/material/Container';
-import logo from '../assets/images/bcmm.png';
 import Menu from '@mui/material/Menu';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import Avatar from '@mui/material/Avatar';
-import axiosInstance from '../Lesmomdules/axiosInstance';
-import Button from '@mui/material/Button';
-
 import TableChartIcon from '@mui/icons-material/TableChart';
 import MapIcon from '@mui/icons-material/Map';
 import PersonIcon from '@mui/icons-material/Person';
@@ -35,6 +25,10 @@ import HistoryIcon from '@mui/icons-material/History';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import ScienceIcon from '@mui/icons-material/Science';
+
+import logo from '../assets/images/bcmm.png';
+import axiosInstance from '../Lesmomdules/axiosInstance';
+import { bcmm } from '../theme/bcmm';
 
 import TableauDeBord from './component/TableauDeBord';
 import Carte from './Carte';
@@ -44,282 +38,258 @@ import CompareZones from './component/CompareZones';
 import DossierInstruction from './component/DossierInstruction';
 import ValidationMetier from './component/ValidationMetier';
 
-import { useNavigate } from 'react-router-dom';
-
-const drawerWidth = 240;
-const pages = [''];
-const settings = ['Profil', 'Logout'];
+const drawerWidth = 248;
 
 function ResponsiveDrawer(props) {
   const { fenetre } = props;
-  const [fenetre2 ,setFenetre2] = useState('');
-  const [taille] = useState(0);
-  const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [isClosing, setIsClosing] = React.useState(false);
-  const [pejy, setPejy] = useState((<Carte />));
-  const comp = [
-    { name: 'Tableau de bord', page: 'Tableaudebord', icon: (<TableChartIcon />), comp: (<TableauDeBord />), lien: '/admin/dashboard' },
-    { name: 'Carte', page: 'Carte', icon: (<MapIcon />), comp: (<Carte taille={taille} />), lien: '/admin/carte' },
-    { name: 'Gestion Utilisateur', page: 'UtilisateurGestion', icon: (<PersonIcon />), comp: (<UtilisateurGestion />), lien: '/admin/utilisateurGestion' },
-    { name: 'Historique', page: 'Historique', icon: (<HistoryIcon />), comp: (<Historique />), lien: '/admin/historique' },
-    { name: 'Comparer zones', page: 'Comparer', icon: (<CompareArrowsIcon />), comp: (<CompareZones />), lien: '/admin/comparer' },
-    { name: 'Instruction', page: 'Instruction', icon: (<AssignmentIcon />), comp: (<DossierInstruction />), lien: '/admin/instruction' },
-    { name: 'Validation métier', page: 'Validation', icon: (<ScienceIcon />), comp: (<ValidationMetier />), lien: '/admin/validation' },
-  ]
-
-
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [utilisateur, setUtilisateur] = useState(null);
+  const [anchorElUser, setAnchorElUser] = useState(null);
+
+  const comp = [
+    { name: 'Tableau de bord', page: 'Tableaudebord', icon: <TableChartIcon fontSize="small" />, lien: '/admin/dashboard' },
+    { name: 'Carte', page: 'Carte', icon: <MapIcon fontSize="small" />, lien: '/admin/carte' },
+    { name: 'Utilisateurs', page: 'UtilisateurGestion', icon: <PersonIcon fontSize="small" />, lien: '/admin/utilisateurGestion' },
+    { name: 'Historique', page: 'Historique', icon: <HistoryIcon fontSize="small" />, lien: '/admin/historique' },
+    { name: 'Comparer zones', page: 'Comparer', icon: <CompareArrowsIcon fontSize="small" />, lien: '/admin/comparer' },
+    { name: 'Instruction', page: 'Instruction', icon: <AssignmentIcon fontSize="small" />, lien: '/admin/instruction' },
+    { name: 'Validation métier', page: 'Validation', icon: <ScienceIcon fontSize="small" />, lien: '/admin/validation' },
+  ];
+
+  const views = {
+    Tableaudebord: <TableauDeBord />,
+    Carte: <Carte taille={0} />,
+    UtilisateurGestion: <UtilisateurGestion />,
+    Historique: <Historique />,
+    Comparer: <CompareZones />,
+    Instruction: <DossierInstruction />,
+    Validation: <ValidationMetier />,
+  };
+
   useEffect(() => {
-    // Fonction pour effectuer la requête GET
     const fetchData = async () => {
       try {
         const response = await axiosInstance.get('/getSession');
-        if (response.data.hasOwnProperty('user')) {
+        if (Object.prototype.hasOwnProperty.call(response.data, 'user')) {
           setUtilisateur(response.data.user);
-        }
-        else {
+        } else {
           window.location.href = '/login';
         }
-
       } catch (error) {
-        console.error('Erreur lors de la requête GET :', error);
+        console.error('Erreur session:', error);
       }
     };
     fetchData();
   }, []);
 
-  const [composant, setComposant] = useState();
-  useEffect(() => {
-    setFenetre2(fenetre);
-    console.log(fenetre2)
-    const cmps = (comp.filter(element => element.page === fenetre)[0]).comp;
-    setComposant(cmps);
-  }, [fenetre, fenetre2]);
   const handleMenu = (lien) => {
     window.location.href = lien;
-  }
-
-
-  const handleDrawerClose = () => {
-    setIsClosing(true);
-    setMobileOpen(false);
   };
 
-  const handleDrawerTransitionEnd = () => {
-    setIsClosing(false);
-  };
+  const handleDrawerToggle = () => setMobileOpen((v) => !v);
 
-  const handleDrawerToggle = () => {
-    if (!isClosing) {
-      setMobileOpen(!mobileOpen);
-    }
+  const handleOpenUserMenu = (event) => setAnchorElUser(event.currentTarget);
+  const handleCloseUserMenu = () => setAnchorElUser(null);
+  const handleLogout = () => {
+    localStorage.removeItem('userToken');
+    window.location.href = '/login';
   };
 
   const drawer = (
-    <div>
-      <Toolbar />
-      <Divider />
-      <List>
-        {comp.map((text, index) => (
-          <ListItem key={index} disablePadding onClick={() => handleMenu(text.lien)} active>
-            <ListItemButton>
-              <ListItemIcon>
-                {text.icon}
-              </ListItemIcon>
-              <ListItemText primary={text.name} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-      <Divider />
-    </div>
-  );
-
-  function HideOnScroll(props) {
-    const { children, window } = props;
-    const trigger = useScrollTrigger({
-      target: window ? window() : undefined,
-    });
-
-    return (
-      <Slide appear={false} direction="down" in={!trigger}>
-        {children}
-      </Slide>
-    );
-  }
-  HideOnScroll.propTypes = {
-    children: PropTypes.element.isRequired,
-    /**
-     * Injected by the documentation to work in an iframe.
-     * You won't need it on your project.
-     */
-    window: PropTypes.func,
-  };
-  const [anchorElNav, setAnchorElNav] = React.useState(null);
-  const [anchorElUser, setAnchorElUser] = React.useState(null);
-
-  const handleOpenNavMenu = (event) => {
-    setAnchorElNav(event.currentTarget);
-  };
-  const handleOpenUserMenu = (event) => {
-    setAnchorElUser(event.currentTarget);
-  };
-  const handleCloseNavMenu = () => {
-    setPejy((<Carte />));
-    setAnchorElNav(null);
-  };
-  const handleCloseUserMenu = () => {
-    setAnchorElUser(null);
-  };
-  const handleSetting = (setting) => {
-    localStorage.removeItem("userToken")
-    window.location.href = "/login"
-    console.log(setting);
-  }
-
-  // Remove this const when copying and pasting into your project.
-  const container = window !== undefined ? () => window().document.body : undefined;
-
-  return (
-    <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
-      <HideOnScroll {...props} >
-        <AppBar style={{ backgroundColor: 'rgb(16 87 157)' }}>
-          <Container maxWidth="xl">
-            <Toolbar disableGutters>
-              <img src={logo} alt="logo d l entreprise" style={{ width: '95px', height: '45px', marginLeft: '20px' }} />
-              <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
-                <IconButton
-                  size="large"
-                  aria-label="account of current user"
-                  aria-controls="menu-appbar"
-                  aria-haspopup="true"
-                  onClick={handleOpenNavMenu}
-                  color="inherit"
-                >
-                  <MenuIcon />
-                </IconButton>
-                <Menu
-                  id="menu-appbar"
-                  anchorEl={anchorElNav}
-                  anchorOrigin={{
-                    vertical: 'bottom',
-                    horizontal: 'left',
-                  }}
-                  keepMounted
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'left',
-                  }}
-                  open={Boolean(anchorElNav)}
-                  onClose={handleCloseNavMenu}
-                  sx={{
-                    display: { xs: 'block', md: 'none' },
-                  }}
-                >
-                  {pages.map((page) => (
-                    <MenuItem key={page} onClick={handleCloseNavMenu}>
-                      <Typography textAlign="center">{page}</Typography>
-                    </MenuItem>
-                  ))}
-                </Menu>
-              </Box>
-
-              <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-                {pages.map((page) => (
-                  <Button
-                    key={page}
-                    onClick={handleCloseNavMenu}
-                    sx={{ my: 2, color: 'white', display: 'block' }}
-                  >
-                    {page}
-                  </Button>
-                ))}
-              </Box>
-
-              <Box sx={{ flexGrow: 0 }}>
-                <Tooltip title="Profil">
-                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                    <Avatar alt={utilisateur?.nom + ' ' + utilisateur?.prenom} src='assets/images/user.png' />
-                  </IconButton>
-                </Tooltip>
-                <Menu
-                  sx={{ mt: '50px' }}
-                  id="menu-appbar"
-                  anchorEl={anchorElUser}
-                  anchorOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  keepMounted
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  open={Boolean(anchorElUser)}
-                  onClose={handleCloseUserMenu}
-                >
-                  <div style={{ padding: '5px' }}>
-                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }} >
-                      <Avatar alt={utilisateur?.nom + ' ' + utilisateur?.prenom} src='assets/images/user.png' />
-                    </div>
-                    <p style={{ fontFamily: 'Merriweather' }} >{utilisateur?.nom + ' ' + utilisateur?.prenom}</p>
-                  </div>
-                  <hr />
-                  {settings.map((setting) => (
-                    <MenuItem key={setting} onClick={() => handleSetting(setting)}>
-                      <Typography textAlign="center">{setting}</Typography>
-                    </MenuItem>
-                  ))}
-                </Menu>
-              </Box>
-            </Toolbar>
-          </Container>
-        </AppBar>
-      </HideOnScroll>
-      <Drawer
-        variant="permanent"
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: bcmm.surface.sidebar }}>
+      <Toolbar
         sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+          px: 2,
+          minHeight: '64px !important',
+          borderBottom: `1px solid ${bcmm.surface.border}`,
         }}
       >
-        {drawer}
-      </Drawer>
+        <Box
+          component="img"
+          src={logo}
+          alt="BCMM"
+          sx={{ height: 34, width: 'auto', display: 'block', maxWidth: '100%' }}
+        />
+      </Toolbar>
+      <List sx={{ px: 1.25, py: 1.5, flex: 1 }}>
+        {comp.map((item) => {
+          const active = item.page === fenetre;
+          return (
+            <ListItem key={item.page} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                onClick={() => handleMenu(item.lien)}
+                selected={active}
+                sx={{
+                  borderRadius: `${bcmm.radius.sm}px`,
+                  py: 1,
+                  '&.Mui-selected': {
+                    bgcolor: bcmm.surface.sidebarActive,
+                    color: bcmm.brand.primary,
+                    '& .MuiListItemIcon-root': { color: bcmm.brand.primary },
+                    '&:hover': { bgcolor: bcmm.surface.sidebarActive },
+                  },
+                  '&:hover': { bgcolor: 'rgba(27, 79, 138, 0.06)' },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36, color: active ? bcmm.brand.primary : bcmm.ink.muted }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.name}
+                  primaryTypographyProps={{
+                    fontSize: 13.5,
+                    fontWeight: active ? 700 : 500,
+                    color: active ? bcmm.brand.primary : bcmm.ink.body,
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+      <Divider />
+      <Box sx={{ p: 2 }}>
+          <Typography sx={{ fontSize: 11, color: bcmm.ink.muted }}>
+          BCMM, comptes internes
+        </Typography>
+      </Box>
+    </Box>
+  );
+
+  const container = props.window !== undefined ? () => props.window().document.body : undefined;
+
+  return (
+    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden', bgcolor: bcmm.surface.canvas }}>
+      <CssBaseline />
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          ml: { sm: `${drawerWidth}px` },
+          bgcolor: bcmm.surface.card,
+          color: bcmm.ink.title,
+          borderBottom: `1px solid ${bcmm.surface.border}`,
+        }}
+      >
+        <Toolbar sx={{ minHeight: '64px !important', gap: 1 }}>
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 1, display: { sm: 'none' } }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography sx={{ flexGrow: 1, fontSize: 15, fontWeight: 600, color: bcmm.ink.body }}>
+            {comp.find((c) => c.page === fenetre)?.name || 'Administration'}
+          </Typography>
+          <Tooltip title="Profil">
+            <IconButton onClick={handleOpenUserMenu} sx={{ p: 0.5 }}>
+              <Avatar
+                alt={`${utilisateur?.nom || ''} ${utilisateur?.prenom || ''}`}
+                sx={{
+                  width: 36,
+                  height: 36,
+                  bgcolor: bcmm.brand.primary,
+                  fontSize: 14,
+                  fontWeight: 700,
+                }}
+              >
+                {(utilisateur?.nom || 'A').charAt(0)}
+              </Avatar>
+            </IconButton>
+          </Tooltip>
+          <Menu
+            sx={{ mt: '45px' }}
+            anchorEl={anchorElUser}
+            open={Boolean(anchorElUser)}
+            onClose={handleCloseUserMenu}
+            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <Box sx={{ px: 2, py: 1.5, minWidth: 180 }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 700, color: bcmm.ink.title }}>
+                {utilisateur ? `${utilisateur.nom || ''} ${utilisateur.prenom || ''}`.trim() : 'Utilisateur'}
+              </Typography>
+              <Typography sx={{ fontSize: 12, color: bcmm.ink.muted }}>
+                {utilisateur?.username || 'session'}
+              </Typography>
+            </Box>
+            <Divider />
+            <MenuItem onClick={handleLogout}>
+              <Typography sx={{ fontSize: 14 }}>Déconnexion</Typography>
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
+      <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
+        <Drawer
+          container={container}
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            display: { xs: 'block', sm: 'none' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              borderRight: `1px solid ${bcmm.surface.border}`,
+            },
+          }}
+        >
+          {drawer}
+        </Drawer>
+        <Drawer
+          variant="permanent"
+          open
+          sx={{
+            display: { xs: 'none', sm: 'block' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              borderRight: `1px solid ${bcmm.surface.border}`,
+            },
+          }}
+        >
+          {drawer}
+        </Drawer>
+      </Box>
 
       <Box
         component="main"
-        sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}
+        sx={{
+          flexGrow: 1,
+          p: fenetre === 'Carte' ? 0 : { xs: 2, md: 2.5 },
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          maxWidth: { sm: `calc(100% - ${drawerWidth}px)` },
+          height: '100vh',
+          overflow: fenetre === 'Carte' ? 'hidden' : 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          boxSizing: 'border-box',
+        }}
       >
-        <Toolbar />
+        <Toolbar sx={{ minHeight: '64px !important', flexShrink: 0 }} />
         <Box
-          component="nav"
-          sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-          aria-label="mailbox folders"
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            width: '100%',
+            overflow: fenetre === 'Carte' ? 'hidden' : 'auto',
+          }}
         >
-          {/* <Drawer
-            variant="permanent"
-            sx={{
-              display: { xs: 'none', sm: 'block' },
-              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-            }}
-            open
-          >
-            {drawer}
-          </Drawer> */}
+          {views[fenetre] || <TableauDeBord />}
         </Box>
-        {composant}
       </Box>
     </Box>
   );
 }
 
 ResponsiveDrawer.propTypes = {
-  /**
-   * Injected by the documentation to work in an iframe.
-   * Remove this when copying and pasting into your project.
-   */
+  fenetre: PropTypes.string,
   window: PropTypes.func,
 };
 

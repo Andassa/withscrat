@@ -51,7 +51,7 @@ export default function AnalyseKrigeage({ choixSubs }) {
             </AccordionSummary>
             <AccordionDetails>
                 <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                    Estimation locale en un point — n&apos;entre pas dans la note d&apos;évaluation du permis.
+                    Estimation locale en un point. N&apos;entre pas dans la note d&apos;évaluation du permis.
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxWidth: 360 }}>
                     <TextField

@@ -30,7 +30,7 @@ export default function AssistantChecklist({ donneesTableau, localChecks }) {
                 Assistant de demande
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                Checklist avant évaluation — les points rouges bloquent l&apos;envoi.
+                Les points rouges bloquent l&apos;envoi.
             </Typography>
             <List dense>
                 {checks.map((c) => (
