@@ -38,6 +38,9 @@ function App() {
             <Route path="/admin/utilisateurGestion" element={<Admin fenetre={'UtilisateurGestion'} />} />
             <Route path="/admin/carte" element={<Admin fenetre={'Carte'} />} />
             <Route path="/admin/historique" element={<Admin fenetre={'Historique'} />} />
+            <Route path="/admin/comparer" element={<Admin fenetre={'Comparer'} />} />
+            <Route path="/admin/instruction" element={<Admin fenetre={'Instruction'} />} />
+            <Route path="/admin/validation" element={<Admin fenetre={'Validation'} />} />
           </Route>
 
         </Routes>

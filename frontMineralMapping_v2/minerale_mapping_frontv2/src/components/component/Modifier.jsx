@@ -33,7 +33,7 @@ export default function RecipeReviewCard(props) {
 
     useEffect(() => {
         try {
-            fetch('http://localhost:3000/getAllFonction', {
+            fetch('/getAllFonction', {
                 method: 'Get',
                 headers: { 'Content-Type': 'application/json' }
             })
@@ -67,7 +67,7 @@ export default function RecipeReviewCard(props) {
     const handleValider = async () => {
         console.log(values)
         try {
-            const response = await axiosInstance.post('http://localhost:3000/updateProfile', values);
+            const response = await axiosInstance.post('/updateProfile', values);
             setUtilisateur(values)
 
             setModifier(false)

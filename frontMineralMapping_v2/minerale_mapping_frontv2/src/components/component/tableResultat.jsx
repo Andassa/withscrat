@@ -7,147 +7,145 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
-import { green, yellow } from '@mui/material/colors'; // Importez les couleurs de MUI
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Collapse from '@mui/material/Collapse';
+import IconButton from '@mui/material/IconButton';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import Stack from '@mui/material/Stack';
+import axiosInstance from '../../Lesmomdules/axiosInstance';
 
+const noteLabel = (res) => {
+    if (res === 1) return 'nulle';
+    if (res === 2) return 'faible';
+    if (res === 3) return 'moyenne';
+    if (res === 4) return 'élevée';
+    return 'indeterminee';
+};
 
+const indiceLabel = (indice) => {
+    if (indice === 1) return 'nulle';
+    if (indice === 2 || indice === 3) return 'moyenne';
+    if (indice === 4) return 'élevée';
+    return 'indeterminee';
+};
 
-const columns = [
-    { id: 'subs', label: 'Substance', minWidth: 170 },
-    { id: 'prob', label: 'par lithologie', minWidth: 100 },
-    { id: 'probIndice', label: 'par indice', minWidth: 100 },
-];
-
-function createData(subs, res, prob, indice) {
-    if (res === 1) {
-        prob = 'nulle';
-    }
-    if (res === 2) {
-        prob = 'faible';
-    }
-    if (res === 3) {
-        prob = 'moyenne';
-    }
-    if (res === 4) {
-        prob = 'élevée';
-    }
-    if (res === 0) {
-        prob = 'erreur';
-    }
-    var probIndice = 20 ; 
-    console.log(indice);
-    if (indice === 1) {
-        probIndice = 'nulle';
-    }
-    if (indice === 3 || indice === 2) {
-        probIndice = 'moyenne';
-    }
-    if (indice === 4) {
-        probIndice = 'élevée';
-    }
-    if (indice === 0) {
-        probIndice = 'erreur';
-    }
-    return { subs, prob, probIndice };
-}
-
-
-export default function StickyHeadTable(props) {
-    const { selectedValue } = props;
-    const [page, setPage] = React.useState(0);
-    const [tab, setTab] = useState([]);
-    const [rowsPerPage, setRowsPerPage] = React.useState(10);
-    const { resultat } = props;
-
-    useEffect(() => {
-        let t = []
-        if (resultat.length !== 0) {
-            console.log(resultat)
-            resultat.sort((a, b) => parseInt(b.result) - parseInt(a.result));
-            const nb = parseInt(selectedValue);
-            if (nb > resultat.length) {
-                resultat.forEach(element => {
-                    t.push(createData(element.subs, element.result, 0, element.probIndice))
-                });
-            } else {
-                for (let i = 0; i < nb; i++) {
-                    t.push(createData(resultat[i].subs, resultat[i].result, 0, resultat[i].probIndice, 0))
-                }
-            }
-            console.log(t)
-            setTab(t);
-        }
-    }, [resultat, selectedValue])
-
-    const handleChangePage = (event, newPage) => {
-        setPage(newPage);
+function Row({ element, historiqueId }) {
+    const [open, setOpen] = useState(false);
+    const [noteGeo, setNoteGeo] = useState(String(element.result || ''));
+    const [comment, setComment] = useState('');
+    const [saved, setSaved] = useState('');
+    const litho = element.label || noteLabel(Number(element.result));
+    const indice = indiceLabel(Number(element.presenceIndice ?? element.probIndice));
+    const colorFor = (value) => {
+        if (value === 'élevée') return 'green';
+        if (value === 'moyenne') return 'rgb(213, 214, 3)';
+        if (value === 'faible') return 'orange';
+        if (value === 'nulle') return 'red';
+        return undefined;
     };
 
-    const handleChangeRowsPerPage = (event) => {
-        setRowsPerPage(+event.target.value);
-        setPage(0);
+    const sendFeedback = async () => {
+        await axiosInstance.post('/api/validation/feedback', {
+            historiqueId,
+            substance: element.subs,
+            noteSysteme: Number(element.result),
+            noteGeologue: Number(noteGeo),
+            commentaire: comment,
+        });
+        setSaved('Feedback enregistré');
     };
 
     return (
+        <>
+            <TableRow hover>
+                <TableCell>
+                    <IconButton size="small" onClick={() => setOpen(!open)}>
+                        {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                    </IconButton>
+                </TableCell>
+                <TableCell>{element.subs}</TableCell>
+                <TableCell style={{ color: colorFor(litho) }}>{litho}</TableCell>
+                <TableCell style={{ color: colorFor(indice) }}>{indice}</TableCell>
+                <TableCell>{element.path || '—'}</TableCell>
+            </TableRow>
+            <TableRow>
+                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
+                    <Collapse in={open} timeout="auto" unmountOnExit>
+                        <Box sx={{ m: 1 }}>
+                            <Typography variant="subtitle2">Justification</Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                {element.reason || 'Règles géologiques appliquées.'}
+                            </Typography>
+                            <Typography variant="body2">Bases: {(element.basesMatched || []).join(', ') || '—'}</Typography>
+                            <Typography variant="subtitle2" sx={{ mt: 1 }}>Validation géologue</Typography>
+                            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                                <TextField size="small" type="number" label="Note géologue" value={noteGeo} onChange={(e) => setNoteGeo(e.target.value)} sx={{ width: 140 }} />
+                                <TextField size="small" label="Commentaire" value={comment} onChange={(e) => setComment(e.target.value)} sx={{ flex: 1 }} />
+                                <Button size="small" variant="outlined" onClick={sendFeedback}>Valider</Button>
+                            </Stack>
+                            {saved && <Typography variant="caption" color="success.main">{saved}</Typography>}
+                        </Box>
+                    </Collapse>
+                </TableCell>
+            </TableRow>
+        </>
+    );
+}
+
+export default function StickyHeadTable({ selectedValue, resultat, meta }) {
+    const [page, setPage] = useState(0);
+    const [tab, setTab] = useState([]);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+
+    useEffect(() => {
+        if (!Array.isArray(resultat) || !resultat.length) {
+            setTab([]);
+            return;
+        }
+        const sorted = [...resultat].sort((a, b) => Number(b.result) - Number(a.result));
+        const nb = parseInt(selectedValue, 10);
+        setTab(Number.isFinite(nb) && nb < sorted.length ? sorted.slice(0, nb) : sorted);
+    }, [resultat, selectedValue]);
+
+    return (
         <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+            <Box sx={{ p: 1 }}>
+                <Typography variant="caption" color="text.secondary" display="block">
+                    Note lithologie = règles géologiques. Indices = familles touchées (pas une proba).
+                </Typography>
+                {meta?.historiqueId != null && (
+                    <Typography variant="caption">Historique #{meta.historiqueId}</Typography>
+                )}
+            </Box>
             <TableContainer sx={{ maxHeight: 440 }}>
-                <Table stickyHeader aria-label="sticky table">
+                <Table stickyHeader size="small">
                     <TableHead>
                         <TableRow>
-                            {columns.map((column) => (
-                                <TableCell
-                                    key={column.id}
-                                    align={column.align}
-                                    style={{ minWidth: column.minWidth }}
-                                >
-                                    {column.label}
-                                </TableCell>
-                            ))}
+                            <TableCell />
+                            <TableCell>Substance</TableCell>
+                            <TableCell>Lithologie</TableCell>
+                            <TableCell>Présence indices</TableCell>
+                            <TableCell>Chemin</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {tab
-                            .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                            .map((row) => {
-                                return (
-                                    <TableRow hover role="checkbox" tabIndex={-1} key={row.code}>
-                                        {columns.map((column) => {
-                                            const value = row[column.id];
-                                            let cellStyle = {};
-
-                                            // Appliquer les styles conditionnels
-                                            if (value === 'élevée') {
-                                                // cellStyle = { backgroundColor: green[500], color: 'green' };
-                                                cellStyle = { color: 'green' };
-                                            } else if (value === 'moyenne') {
-                                                cellStyle = { color: 'rgb(213, 214, 3)' };
-                                            } else if (value === 'faible') {
-                                                cellStyle = { color: 'orange' };
-                                            } else if (value === 'nulle') {
-                                                cellStyle = { color: 'red' };
-                                            }
-
-                                            return (
-                                                <TableCell key={column.id} align={column.align} style={cellStyle}>
-                                                    {column.format && typeof value === 'number'
-                                                        ? column.format(value)
-                                                        : value}
-                                                </TableCell>
-                                            );
-                                        })}cd ""
-                                    </TableRow>
-                                );
-                            })}
+                        {tab.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
+                            <Row key={row.subs} element={row} historiqueId={meta?.historiqueId} />
+                        ))}
                     </TableBody>
                 </Table>
             </TableContainer>
             <TablePagination
-                rowsPerPageOptions={[10, 25, 100]}
                 component="div"
                 count={tab.length}
                 rowsPerPage={rowsPerPage}
                 page={page}
-                onPageChange={handleChangePage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
+                onPageChange={(e, p) => setPage(p)}
+                onRowsPerPageChange={(e) => { setRowsPerPage(+e.target.value); setPage(0); }}
             />
         </Paper>
     );

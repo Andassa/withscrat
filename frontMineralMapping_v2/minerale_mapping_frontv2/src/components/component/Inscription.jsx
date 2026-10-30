@@ -124,7 +124,7 @@ export default function ImgMediaCard() {
 
             if (dataErreur==='' && passwordErreur==='') {
                 console.log('ato',formData)
-                const response = await axiosInstance.post('http://localhost:3000/register', formData);
+                const response = await axiosInstance.post('/register', formData);
                 if (response.data.hasOwnProperty('erreur')) {
                     setDataErreur(response.data.erreur.message);
                 } 
@@ -141,7 +141,7 @@ export default function ImgMediaCard() {
 
     useEffect(() => {
         try {
-            fetch('http://localhost:3000/getServiceFonction', {
+            fetch('/getServiceFonction', {
                 method: 'Get',
                 headers: { 'Content-Type': 'application/json' }
             })

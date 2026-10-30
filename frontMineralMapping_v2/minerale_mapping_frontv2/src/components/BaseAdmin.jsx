@@ -32,11 +32,17 @@ import TableChartIcon from '@mui/icons-material/TableChart';
 import MapIcon from '@mui/icons-material/Map';
 import PersonIcon from '@mui/icons-material/Person';
 import HistoryIcon from '@mui/icons-material/History';
+import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import ScienceIcon from '@mui/icons-material/Science';
 
 import TableauDeBord from './component/TableauDeBord';
 import Carte from './Carte';
 import Historique from './component/Historique';
 import UtilisateurGestion from './component/UtilisateurGestion';
+import CompareZones from './component/CompareZones';
+import DossierInstruction from './component/DossierInstruction';
+import ValidationMetier from './component/ValidationMetier';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -56,6 +62,9 @@ function ResponsiveDrawer(props) {
     { name: 'Carte', page: 'Carte', icon: (<MapIcon />), comp: (<Carte taille={taille} />), lien: '/admin/carte' },
     { name: 'Gestion Utilisateur', page: 'UtilisateurGestion', icon: (<PersonIcon />), comp: (<UtilisateurGestion />), lien: '/admin/utilisateurGestion' },
     { name: 'Historique', page: 'Historique', icon: (<HistoryIcon />), comp: (<Historique />), lien: '/admin/historique' },
+    { name: 'Comparer zones', page: 'Comparer', icon: (<CompareArrowsIcon />), comp: (<CompareZones />), lien: '/admin/comparer' },
+    { name: 'Instruction', page: 'Instruction', icon: (<AssignmentIcon />), comp: (<DossierInstruction />), lien: '/admin/instruction' },
+    { name: 'Validation métier', page: 'Validation', icon: (<ScienceIcon />), comp: (<ValidationMetier />), lien: '/admin/validation' },
   ]
 
 
@@ -64,7 +73,7 @@ function ResponsiveDrawer(props) {
     // Fonction pour effectuer la requête GET
     const fetchData = async () => {
       try {
-        const response = await axiosInstance.get('http://localhost:3000/getSession');
+        const response = await axiosInstance.get('/getSession');
         if (response.data.hasOwnProperty('user')) {
           setUtilisateur(response.data.user);
         }

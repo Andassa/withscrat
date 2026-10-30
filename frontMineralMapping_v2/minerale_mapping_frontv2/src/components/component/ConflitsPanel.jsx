@@ -9,12 +9,20 @@ import Alert from '@mui/material/Alert';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Stack from '@mui/material/Stack';
 import axiosInstance from '../../Lesmomdules/axiosInstance';
 
-export default function ConflitsPanel({ listeCarre, conflits: conflitsProp }) {
+export default function ConflitsPanel({ listeCarre, conflits: conflitsProp, onConflits }) {
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState(conflitsProp || null);
     const [error, setError] = useState('');
+    const [layer, setLayer] = useState('permis_shp');
+    const [threshold, setThreshold] = useState(100);
 
     React.useEffect(() => {
         if (conflitsProp) setData(conflitsProp);
@@ -24,8 +32,13 @@ export default function ConflitsPanel({ listeCarre, conflits: conflitsProp }) {
         setError('');
         setLoading(true);
         try {
-            const res = await axiosInstance.post('/api/decision/conflits', { listeCarre });
+            const res = await axiosInstance.post('/api/decision/conflits', {
+                listeCarre,
+                layer,
+                blockingOverlapM2: Number(threshold),
+            });
             setData(res.data);
+            onConflits?.(res.data);
         } catch (err) {
             setError(err.response?.data?.erreur || 'Erreur détection conflits');
         } finally {
@@ -34,20 +47,36 @@ export default function ConflitsPanel({ listeCarre, conflits: conflitsProp }) {
     };
 
     return (
-        <Accordion sx={{ mt: 2 }}>
+        <Accordion sx={{ mt: 2 }} defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>Conflits de titres {data?.alerte ? `(${data.count})` : ''}</Typography>
+                <Typography>
+                    Conflits de titres {data?.alerte ? `(${data.count}${data.bloquant ? ' · BLOQUANT' : ''})` : ''}
+                </Typography>
             </AccordionSummary>
             <AccordionDetails>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                    Chevauchements avec la couche cadastre active ({data?.layer || 'PERMIS_LAYER'}).
-                </Typography>
-                <Button variant="outlined" size="small" onClick={scan} disabled={loading || !listeCarre?.length}>
-                    {loading ? 'Analyse…' : 'Scanner les conflits'}
-                </Button>
-                {error && <Alert severity="error" sx={{ mt: 1 }}>{error}</Alert>}
+                <Stack direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
+                    <FormControl size="small" sx={{ minWidth: 160 }}>
+                        <InputLabel>Couche</InputLabel>
+                        <Select label="Couche" value={layer} onChange={(e) => setLayer(e.target.value)}>
+                            <MenuItem value="permis_shp">permis_shp</MenuItem>
+                            <MenuItem value="permis_625">permis_625</MenuItem>
+                        </Select>
+                    </FormControl>
+                    <TextField
+                        size="small"
+                        type="number"
+                        label="Seuil bloquant m²"
+                        value={threshold}
+                        onChange={(e) => setThreshold(e.target.value)}
+                        sx={{ width: 150 }}
+                    />
+                    <Button variant="outlined" size="small" onClick={scan} disabled={loading || !listeCarre?.length}>
+                        {loading ? 'Analyse…' : 'Scanner'}
+                    </Button>
+                </Stack>
+                {error && <Alert severity="error">{error}</Alert>}
                 {data && (
-                    <Alert severity={data.alerte ? 'warning' : 'success'} sx={{ mt: 1 }}>
+                    <Alert severity={data.bloquant ? 'error' : data.alerte ? 'warning' : 'success'} sx={{ mt: 1 }}>
                         {data.message}
                     </Alert>
                 )}
@@ -56,8 +85,8 @@ export default function ConflitsPanel({ listeCarre, conflits: conflitsProp }) {
                         {data.conflits.slice(0, 12).map((c) => (
                             <ListItem key={c.gid}>
                                 <ListItemText
-                                    primary={`#${c.gid} ${c.titres_no_ || c.titre || ''} ${c.type_tit_1 || c.type || ''}`}
-                                    secondary={`titulaire: ${c.registre_1 || c.r_nom || '—'} · overlap ${c.overlap_m2 || '?'} m²`}
+                                    primary={`#${c.gid} ${c.titres_no_ || c.titre || ''} [${c.severite}]`}
+                                    secondary={`titulaire: ${c.registre_1 || c.r_nom || '—'} · ${c.overlap_m2} m²`}
                                 />
                             </ListItem>
                         ))}

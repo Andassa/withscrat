@@ -31,7 +31,7 @@ export default function SelectVariants(props) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axiosInstance.get('http://localhost:3000/utilisateur/getTypePermis');
+                const response = await axiosInstance.get('/utilisateur/getTypePermis');
                 setTypePermis(response.data);
             }
             catch (error) {
@@ -43,7 +43,7 @@ export default function SelectVariants(props) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axiosInstance.get('http://localhost:3000/utilisateur/getDemandeur');
+                const response = await axiosInstance.get('/utilisateur/getDemandeur');
                 setDemandeur(response.data);
             }
             catch (error) {

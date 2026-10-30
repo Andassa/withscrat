@@ -1,12 +1,11 @@
 import axios from 'axios';
 
-// Créer une instance Axios personnalisée
+const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:3000',
-  // Autres options de configuration...
+  baseURL,
+  withCredentials: true,
 });
 
-// Configurer withCredentials
-axiosInstance.defaults.withCredentials = true;
-
 export default axiosInstance;
+export { baseURL };

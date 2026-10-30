@@ -60,7 +60,7 @@ export default function FreeSoloCreateOption(props) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axiosInstance.get('http://localhost:3000/utilisateur/getDecoupe');
+        const response = await axiosInstance.get('/utilisateur/getDecoupe');
         const newData = response.data.map(item => ({ ...item, selectionne: 'false' }));
         setDecoupe(newData);
       }

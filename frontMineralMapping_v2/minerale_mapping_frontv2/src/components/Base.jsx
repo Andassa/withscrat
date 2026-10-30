@@ -59,7 +59,7 @@ export default function HideAppBar(props) {
         // Fonction pour effectuer la requête GET
         const fetchData = async () => {
             try {
-                const response = await axiosInstance.get('http://localhost:3000/getSession');
+                const response = await axiosInstance.get('/getSession');
                 if (response.data.hasOwnProperty('user')) {
                     setUtilisateur(response.data.user);
                 }

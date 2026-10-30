@@ -96,7 +96,7 @@ export default function BasicTabs() {
         }
         const fetchData = async () => {
             try {
-                const response = await axiosInstance.get('http://localhost:3000/admin/allUser');
+                const response = await axiosInstance.get('/admin/allUser');
                 if (response.data.hasOwnProperty('erreur')) {
                     window.location.href = '/login';
                 }

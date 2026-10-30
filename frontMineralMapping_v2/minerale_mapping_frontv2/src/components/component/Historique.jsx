@@ -19,7 +19,7 @@ export default function SelectOtherProps() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axiosInstance.get('http://localhost:3000/admin/getHistoriques');
+                const response = await axiosInstance.get('/admin/getHistoriques');
                 setHistoriques(response.data);
             }
             catch (error) {

@@ -51,7 +51,7 @@ export default function BasicTabs(props) {
         const id = utilisateurValide;
         const fetchData = async () => {
             try {
-                const response = await axiosInstance.post('http://localhost:3000/admin/valider', id);
+                const response = await axiosInstance.post('/admin/valider', id);
                 if (response.data.hasOwnProperty('erreur')) {
                     window.location.href = '/login';
                 }

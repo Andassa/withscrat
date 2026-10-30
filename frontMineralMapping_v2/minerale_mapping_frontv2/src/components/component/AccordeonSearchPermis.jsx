@@ -30,7 +30,7 @@ export default function ControlledAccordions(props) {
         setNumPermis(event.target.value);
         const envoye= {num: event.target.value};
         try {
-            const response = await axiosInstance.post('http://localhost:3000/utilisateur/getPermis_byName', envoye);
+            const response = await axiosInstance.post('/utilisateur/getPermis_byName', envoye);
             setLoading(true);
             if (response.data.hasOwnProperty('erreur')) {
                 setLoading(false);

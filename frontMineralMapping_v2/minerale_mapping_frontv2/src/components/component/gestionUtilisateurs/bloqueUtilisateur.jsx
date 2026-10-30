@@ -53,7 +53,7 @@ export default function BasicTabs(props) {
         const id = utilisateurDebloque;
         const fetchData = async () => {
             try {
-                const response = await axiosInstance.post('http://localhost:3000/admin/debloquer', id);
+                const response = await axiosInstance.post('/admin/debloquer', id);
                 if (response.data.hasOwnProperty('erreur')) {
                     window.location.href = '/login';
                 }

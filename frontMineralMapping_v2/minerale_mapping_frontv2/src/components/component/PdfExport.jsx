@@ -1,125 +1,69 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import Button from '@mui/material/Button';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 
+const noteLabel = (res) => {
+    const n = Number(res);
+    if (n === 1) return 'nulle';
+    if (n === 2) return 'faible';
+    if (n === 3) return 'moyenne';
+    if (n === 4) return 'élevée';
+    return 'indeterminee';
+};
+
 const ExportPDF = (props) => {
-    const { nomPersonne } = props;
-    const { selectPermis } = props;
-    const { selectedValue } = props;
-    const { listeCarre } = props;
-    const { nomFichier } = props;
-    const { choixSubs } = props;
-    const { resultat } = props;
-    const [permis, setPermis] = useState('');
-
-    var mouvement = 'Octroie'
-
-    // const [res, setRes] = useState([])
-    var res = [];
-    useEffect(() => {
-        if (selectedValue.length > 0) {
-            if (selectedValue === '5') {
-                mouvement = 'Octroie';
-            }
-            if (selectedValue === '10') {
-                mouvement = 'Renouvellement';
-            }
-        }
-        if (resultat.length > 0) {
-            let res1 = []
-            const nb = parseInt(selectedValue);
-            if (nb > resultat.length) {
-                resultat.forEach(element => {
-                    let res2 = [];
-                    res2.push(element.subs);
-                    if (element.result === 1) {
-                        res2.push('nulle');
-                    }
-                    if (element.result === 2) {
-                        res2.push('faible');
-                    }
-                    if (element.result === 3) {
-                        res2.push('moyenne');
-                    }
-                    if (element.result === 4) {
-                        res2.push('élevée');
-                    }
-                    res1.push(res2);
-                });
-            } else {
-                for (let i = 0; i < nb; i++) {
-                    let res2 = [];
-                    res2.push(resultat[i].subs);
-                    res2.push(resultat[i].result);
-                    res1.push(res2);
-                }
-            }
-            res = res1;
-        }
-    }, [res, resultat, selectedValue])
+    const {
+        nomPersonne, selectPermis, selectedValue, listeCarre, nomFichier,
+        choixSubs, resultat, conflits, meta,
+    } = props;
 
     const generatePDF = () => {
         const doc = new jsPDF();
+        const mouvement = selectedValue === '10' ? 'Renouvellement' : 'Octroie';
+        const rows = Array.isArray(resultat) ? [...resultat] : [];
+        rows.sort((a, b) => Number(b.result) - Number(a.result));
+        const nb = parseInt(selectedValue, 10);
+        const selected = Number.isFinite(nb) && nb < rows.length ? rows.slice(0, nb) : rows;
+        const tableRows = selected.map((el) => [
+            el.subs,
+            el.label || noteLabel(el.result),
+            noteLabel(el.presenceIndice ?? el.probIndice),
+            el.path || '',
+            (el.basesMatched || []).join(', '),
+            (el.reason || '').slice(0, 80),
+        ]);
 
-        // Ajouter un titre
-        doc.setFontSize(18);
-        doc.text('Résultat d\'évaluation de demande Permis', 50, 10);
+        doc.setFontSize(16);
+        doc.text("Dossier d'évaluation / instruction", 14, 12);
+        doc.setFontSize(10);
+        doc.text(`Titulaire: ${nomPersonne || ''}`, 10, 22);
+        doc.text(`Permis: ${selectPermis?.typepermis || selectPermis?.libelle || ''} · ${mouvement}`, 10, 28);
+        doc.text(`Carrés: ${listeCarre?.length || 0} · Substances: ${choixSubs?.length || 0} · CSV: ${nomFichier || '—'}`, 10, 34);
+        doc.text(`Historique: ${meta?.historiqueId ?? '—'} · Lithologies: ${meta?.lithologieCount ?? '—'}`, 10, 40);
+        if (conflits?.bloquant) {
+            doc.setTextColor(180, 0, 0);
+            doc.text(`BLOQUANT: ${conflits.message}`, 10, 46);
+            doc.setTextColor(0, 0, 0);
+        } else {
+            doc.text(`Conflits: ${conflits?.message || 'non scannés'}`, 10, 46);
+        }
 
-        doc.setFontSize(11);
-        doc.text('Titulaire :', 10, 20);
-        doc.text(nomPersonne, 70, 20);
-        doc.text('Type de permis :', 10, 30);
-        doc.text(selectPermis.typepermis, 70, 30);
-        doc.text('Mouvement : ', 10, 40);
-        doc.text(mouvement, 70, 40);
-        doc.text('Fichier CSV : ', 10, 50);
-        doc.text(nomFichier, 70, 50);
-        doc.text('Nombre de Carré :', 10, 60);
-        doc.text(listeCarre.length.toString(), 70, 60);
-        doc.text('Nombre de substance demandé :', 10, 70);
-        doc.text(choixSubs.length.toString(), 70, 70);
-
-        // Données de la table
-
-        const tableColumn = ["substance", "résultat"];
-        const tableRows = res;
-
-        // Ajouter une table
         doc.autoTable({
-            startY: 80,
-            head: [tableColumn],
+            startY: 52,
+            head: [['substance', 'lithologie', 'indices', 'chemin', 'bases', 'justification']],
             body: tableRows,
             theme: 'plain',
-            didDrawCell: (data) => {
-                const { cell } = data;
-                const cellText = cell.text[0]; // Texte de la cellule
-
-                // Définir la couleur du texte en fonction de la valeur du texte
-                if (cellText.includes('example.com')) {
-                    doc.setTextColor(255, 0, 0); // Rouge pour les emails contenant 'example.com'
-                } else if (cellText === 'USA') {
-                    doc.setTextColor(0, 0, 255); // Bleu pour 'USA'
-                } else if (cellText === 'Canada') {
-                    doc.setTextColor(0, 255, 0); // Vert pour 'Canada'
-                } else {
-                    doc.setTextColor(0, 0, 0); // Noir par défaut
-                }
-            },
+            styles: { fontSize: 7 },
         });
-
-
-        doc.save(nomPersonne + '.pdf');
-
+        doc.save(`${nomPersonne || 'dossier'}_instruction.pdf`);
     };
 
     return (
-        <div>
-            <Button variant="contained" endIcon={<PictureAsPdfIcon />} size='large' onClick={generatePDF}>
-                exporter
-            </Button>
-        </div>
+        <Button variant="contained" endIcon={<PictureAsPdfIcon />} size="large" onClick={generatePDF} sx={{ ml: 1 }}>
+            Dossier PDF
+        </Button>
     );
 };
 

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import axiosInstance from '../../Lesmomdules/axiosInstance';
 import { MapContainer, Marker, Popup, TileLayer, FeatureGroup, useMap, Polygon } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
@@ -44,8 +45,10 @@ const DrawMap = (props) => {
     const [editingEnabled, setEditingEnabled] = useState(false);
     const { decoupeAffiche } = props;
     const { listeCarre } = props;
+    const { conflitsGeoms } = props;
     const [dessinCarre, setDessinCarre] = useState([]);
     const [dessinCarreSelect, setDessinCarreSelect] = useState([]);
+    const [dessinConflits, setDessinConflits] = useState([]);
 
     const [coordPolygone, setCoordPolygone] = useState(null);
     // Le style du polygone
@@ -89,28 +92,34 @@ const DrawMap = (props) => {
         }
     }, [listeCarre]);
     useEffect(() => {
-        if (carreSelect.length != 0) {
-            fetch('http://localhost:3000/formeUnCarre', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ centre: carreSelect })
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Erreur lors de l\'envoi du tableau JSON');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    setDessinCarreSelect(data)
-                })
-                .catch(error => {
-                    console.error('Erreur :', error);
-                });
+        if (carreSelect.length !== 0) {
+            axiosInstance.post('/formeUnCarre', { centre: carreSelect })
+                .then((response) => setDessinCarreSelect(response.data))
+                .catch((error) => console.error('Erreur :', error));
         }
     }, [carreSelect]);
+
+    useEffect(() => {
+        if (!conflitsGeoms?.length) {
+            setDessinConflits([]);
+            return;
+        }
+        const polys = [];
+        for (const c of conflitsGeoms) {
+            const geom = typeof c.geom === 'string' ? JSON.parse(c.geom) : c.geom;
+            if (!geom?.coordinates) continue;
+            const rings = geom.type === 'MultiPolygon' ? geom.coordinates : [geom.coordinates];
+            for (const polygon of rings) {
+                const ring = polygon[0] || [];
+                const positions = ring.map((pt) => [pt[1], pt[0]]);
+                polys.push({
+                    positions,
+                    bloquant: c.severite === 'bloquant',
+                });
+            }
+        }
+        setDessinConflits(polys);
+    }, [conflitsGeoms]);
     // useEffect(()=>{
     //     console.log(dessinCarreSelect)
     // },[dessinCarreSelect])
@@ -150,6 +159,18 @@ const DrawMap = (props) => {
             {/* {coordPolygone != null && (<Polygon positions={coordPolygone} pathOptions={polygonOptions} />)} */}
             {dessinCarre != null && (<Polygon positions={dessinCarre} pathOptions={dessinCarreOption} />)}
             {dessinCarreSelect != null && (<Polygon positions={dessinCarreSelect} pathOptions={dessinCarreSelectOption} />)}
+            {dessinConflits?.length > 0 && dessinConflits.map((poly, idx) => (
+                <Polygon
+                    key={`conflit-${idx}`}
+                    positions={poly.positions}
+                    pathOptions={{
+                        color: poly.bloquant ? '#c62828' : '#ef6c00',
+                        fillColor: poly.bloquant ? '#ef5350' : '#ffb74d',
+                        fillOpacity: 0.35,
+                        weight: 2,
+                    }}
+                />
+            ))}
             
             <FeatureGroup ref={featureGroupRef}>
                 <EditControl

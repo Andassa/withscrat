@@ -7,6 +7,7 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import Link from '@mui/material/Link';
 import DeleteIcon from '@mui/icons-material/Delete';
+import axiosInstance from '../../Lesmomdules/axiosInstance';
 
 
 export default function AccessibleTable(props) {
@@ -50,20 +51,8 @@ export default function AccessibleTable(props) {
                 setDecoupeAffiche([]);
             } else {
 
-                fetch('http://localhost:3000/testTableau', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ tableau: choixAffiche })
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Erreur lors de l\'envoi du tableau JSON');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
+                axiosInstance.post('/testTableau', { tableau: choixAffiche })
+                    .then(({ data }) => {
                         const stock = [...data];
                         for (let i = 0; i < stock.length; i++) {
                             stock[i].st_asgeojson = JSON.parse(data[i].st_asgeojson);

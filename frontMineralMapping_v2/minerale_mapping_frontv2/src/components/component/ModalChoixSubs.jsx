@@ -62,7 +62,7 @@ export default function CustomizedDialogs(props) {
         // Fonction pour effectuer la requête GET
         const fetchData = async () => {
             try {
-                const response = await axiosInstance.get('http://localhost:3000/utilisateur/map');
+                const response = await axiosInstance.get('/utilisateur/map');
                 if (response.data.hasOwnProperty('erreur')) {
                     window.location.href = '/login';
                 }
