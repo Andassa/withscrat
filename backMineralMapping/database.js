@@ -1,13 +1,12 @@
-// database.js
-
+require('dotenv').config();
 const { Pool } = require('pg');
 
 const pool = new Pool({
-    user: 'postgres',//superutilisateur
-    host: 'localhost', // ou l'adresse de votre serveur PostgreSQL
-    database: 'mineral_mapping',
-    password: 'Blackangel..',
-    port: 5432, // Port par défaut de PostgreSQL
+    user: process.env.DB_USER || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'mineral_mapping',
+    password: process.env.DB_PASSWORD || '',
+    port: Number(process.env.DB_PORT || 5432),
 });
 
 module.exports = pool;

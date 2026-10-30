@@ -4,7 +4,10 @@
   "description": "projet de mineral mapping ",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "start": "node index.js",
+    "dev": "node index.js",
+    "smoke": "node scripts/smoke.js",
+    "test": "npm run smoke"
   },
   "keywords": [
     "stage"
@@ -17,6 +20,7 @@
     "connect-flash": "^0.1.1",
     "cors": "^2.8.5",
     "decimal.js": "^10.4.3",
+    "dotenv": "^18.0.9",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
     "express-flash": "^0.0.2",

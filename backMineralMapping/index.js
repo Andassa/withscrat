@@ -1,16 +1,14 @@
+require('dotenv').config();
 const cors = require('cors');
 const express = require('express');
 const expressSession = require('express-session');
-const passport = require('./usepassport.js'); // Importez la configuration de la base de données
+const passport = require('./usepassport.js');
 const flash = require('express-flash');
-const pool = require('./database.js'); // Importez la configuration de la base de données
-const bodyParser = require('body-parser');
-// const flash = require('connect-flash');
+const pool = require('./database.js');
 
 const app = express();
-app.use(express.json());
-app.use(bodyParser.json());
-
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 const authentification = require('./controllers/authentification');
 const dashboard = require('./controllers/controllerDash');
@@ -24,26 +22,33 @@ const demande = require('./controllers/DemandeController');
 const carre = require('./controllers/CarreController');
 const utilisateur = require('./controllers/UtilisateurController');
 const historique = require('./controllers/historiqueController');
-const SubstanceController = require('./controllers/SubstanceController'); // Nouveau
-const MapController = require('./controllers/MapController'); // N
-const PermiController = require('./controllers/PermiController'); // Import du PermiController
+const SubstanceController = require('./controllers/SubstanceController');
+const MapController = require('./controllers/MapController');
+const PermiController = require('./controllers/PermiController');
+const analyse = require('./controllers/analyseController');
 
+const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3001,http://127.0.0.1:3001')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
 
-// app.use(cors()); // Enable CORS for all routes
 app.use(cors({
-    origin: ['http://localhost:3001', 'http://192.168.88.69'],
-    methods: 'GET,POST,PUT,DELETE',
+    origin: corsOrigins,
+    methods: 'GET,POST,PUT,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type,Authorization',
-    credentials: true
-
+    credentials: true,
 }));
-app.options('*', cors());
+app.options('*', cors({ origin: corsOrigins, credentials: true }));
 
-//ajout de session après login
 app.use(expressSession({
-    secret: 'bsdhrtjcegmp',
+    secret: process.env.SESSION_SECRET || 'mineral_mapping_dev_secret',
     resave: false,
     saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 1000 * 60 * 60 * 8,
+    },
 }));
 
 app.use(passport.initialize());
@@ -51,27 +56,19 @@ app.use(passport.session());
 app.use(flash());
 
 const checkAdminRole = (req, res, next) => {
-    if (req.isAuthenticated() && req.user.autorisation === 2) {
+    if (req.isAuthenticated() && Number(req.user.autorisation) === 2) {
         return next();
-        // return res.json('connecté en tant que admin')
-    } else {
-        // req.flash('error', 'Accès refusé. Veuillez vous connecter en tant qu\'admin.');
-        // res.redirect('/login');
-        return res.json({erreur : 'Accès refusé. Veuillez vous connecter en tant qu\'admin.'});
     }
+    return res.status(403).json({ erreur: 'Accès refusé. Veuillez vous connecter en tant qu\'admin.' });
 };
+
 const checkUserRole = (req, res, next) => {
     if (req.isAuthenticated()) {
         return next();
-        // return res.json('connecté en tant utilisateur');
-    } else {
-        // req.flash('error', 'Accès refusé. Veuillez vous connecter.');
-        // res.redirect('/login');
-        return res.json({erreur :'Accès refusé. Veuillez vous connecter.'})
     }
+    return res.status(401).json({ erreur: 'Accès refusé. Veuillez vous connecter.' });
 };
 
-// Utilisation du middleware d'autorisation pour les URL commençant par "/admin"
 app.use('/admin', checkAdminRole);
 app.use('/utilisateur', checkUserRole);
 app.use('/', authentification);
@@ -86,23 +83,21 @@ app.use('/', demande);
 app.use('/', carre);
 app.use('/', utilisateur);
 app.use('/', historique);
-// Routes pour les nouveaux contrôleurs
-app.use('/api', PermiController); // Ajout du PermisController
-app.use('/api', SubstanceController); // Ajout du SubstanceController
-app.use('/api', MapController); // Ajout du MapController
+app.use('/api', PermiController);
+app.use('/api', SubstanceController);
+app.use('/api', MapController);
+app.use('/api', analyse);
 
-//lancement du serveur
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-    //message de confirmation de lancement 
     console.log(`Serveur en cours d'exécution sur le port ${port}`);
 });
 
-//fermer la connexion à la base de donnée
 process.on('SIGINT', () => {
     pool.end(() => {
         console.log('Connexion PostgreSQL fermée');
         process.exit(0);
     });
 });
+
 module.exports = app;

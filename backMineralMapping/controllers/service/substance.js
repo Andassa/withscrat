@@ -1,38 +1,22 @@
 const pool = require('../../database.js');
 
 async function getSubs_byId(id) {
-    const requete = "select * from substances where id='" + id + "'";
-    return new Promise((resolve, reject) => {
-        pool.query(requete, (error, resultat) => {
-            if (error) {
-                reject('Erreur de la base de données');
-            }
-            else {
-                resolve(resultat.rows);
-            }
-        })
-    })
+    const resultat = await pool.query('SELECT * FROM substances WHERE id = $1', [id]);
+    return resultat.rows;
 }
-async function get_All_Subs_by_id(listeId){
-    return new Promise((resolve,reject)=>{
-        try {
-            let subs = [];
-            let promises = [];
-            listeId.forEach(id => {
-                promises.push(
-                    getSubs_byId(id)
-                    .then(resulte=> subs.push(resulte))
-                )
-            });
-            Promise.all(promises).then(()=>{
-                resolve(subs);
-            })
-        } catch (error) {
-            reject(error);
-        }
-    })
+
+async function get_All_Subs_by_id(listeId) {
+    const ids = (listeId || []).map((x) => Number(x)).filter((n) => !Number.isNaN(n));
+    if (!ids.length) return [];
+    const resultat = await pool.query(
+        'SELECT * FROM substances WHERE id = ANY($1::int[]) ORDER BY nom',
+        [ids]
+    );
+    // conserve forme [[row]] attendue par l'ancien code
+    return resultat.rows.map((row) => [row]);
 }
+
 module.exports = {
     getSubs_byId,
-    get_All_Subs_by_id
+    get_All_Subs_by_id,
 };
