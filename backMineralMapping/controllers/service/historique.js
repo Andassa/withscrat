@@ -109,8 +109,53 @@ async function get_dashboard_stats() {
     };
 }
 
+async function get_historique_by_id(id) {
+    if (id == null || String(id).trim() === '') return null;
+    const resultat = await pool.query(
+        `SELECT h.id AS id, h.date AS date, h.typepermis AS typePermis, t.libelle,
+                h.utilisateur, u.nom, u.prenom, h.demandeur AS demandeur,
+                r.resultat AS prob, hr.id_historique,
+                r1.resultat AS probIndice, hr.substance AS substance
+         FROM historique h
+         LEFT JOIN historique_result hr ON h.id = hr.id_historique
+         LEFT JOIN resultat r ON r.id = hr.id_result
+         LEFT JOIN resultat r1 ON r1.id = hr.id_result_indice
+         LEFT JOIN typepermis t ON t.id = h.typepermis
+         LEFT JOIN utilisateurs u ON u.id = h.utilisateur
+         WHERE h.id = $1
+         ORDER BY hr.substance NULLS LAST`,
+        [String(id)]
+    );
+    if (!resultat.rows.length) return null;
+
+    const first = resultat.rows[0];
+    const entry = {
+        id: first.id,
+        date: first.date,
+        demandeur: first.demandeur,
+        typepermis: first.typepermis,
+        libelle: first.libelle,
+        utilisateur: first.utilisateur,
+        nom: first.nom,
+        prenom: first.prenom,
+        results: [],
+    };
+    for (const row of resultat.rows) {
+        if (row.id_historique && row.substance) {
+            entry.results.push({
+                id_historique: row.id_historique,
+                prob: row.prob,
+                probIndice: row.probindice || row.probIndice,
+                substance: row.substance,
+            });
+        }
+    }
+    return entry;
+}
+
 module.exports = {
     insert_Historique,
     get_historique,
+    get_historique_by_id,
     get_dashboard_stats,
 };

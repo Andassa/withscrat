@@ -1,5 +1,71 @@
 const pool = require('../../database.js');
 const { LABEL } = require('./scoreEngine');
+const { get_historique_by_id } = require('./historique');
+
+const LABEL_TO_NOTE = {
+    indeterminee: 0,
+    nulle: 1,
+    faible: 2,
+    moyenne: 3,
+    élevée: 4,
+    elevee: 4,
+};
+
+function labelToNote(label) {
+    if (label == null || label === '') return null;
+    if (Number.isFinite(Number(label)) && String(label).trim() !== '') {
+        const n = Number(label);
+        return n >= 0 && n <= 4 ? n : null;
+    }
+    const key = String(label).trim().toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(LABEL_TO_NOTE, key)) return LABEL_TO_NOTE[key];
+    // accents / variantes
+    if (key === 'élevée' || key === 'elevee') return 4;
+    for (const [k, v] of Object.entries(LABEL_TO_NOTE)) {
+        if (k.toLowerCase() === key) return v;
+    }
+    return null;
+}
+
+/**
+ * Construit un brouillon de feedback à partir d'une entrée historique agrégée.
+ * Pure : testable sans DB.
+ */
+function buildDraftFromHistorique(historique) {
+    if (!historique || historique.id == null) {
+        const err = new Error('Historique introuvable');
+        err.code = 'HIST_NOT_FOUND';
+        throw err;
+    }
+    const substances = (historique.results || []).map((r) => {
+        const noteSysteme = labelToNote(r.prob ?? r.note ?? r.id_result);
+        return {
+            substance: r.substance || r.subs || null,
+            noteSysteme,
+            labelSysteme: noteSysteme != null ? (LABEL[noteSysteme] || String(r.prob || '')) : (r.prob || null),
+            presenceIndice: r.probIndice || null,
+        };
+    }).filter((s) => s.substance);
+
+    return {
+        historiqueId: String(historique.id),
+        demandeur: historique.demandeur || null,
+        typepermis: historique.libelle || historique.typepermis || null,
+        date: historique.date || null,
+        utilisateur: [historique.nom, historique.prenom].filter(Boolean).join(' ') || null,
+        substances,
+    };
+}
+
+async function getDraftFromHistorique(historiqueId) {
+    const hist = await get_historique_by_id(historiqueId);
+    if (!hist) {
+        const err = new Error('Historique introuvable');
+        err.code = 'HIST_NOT_FOUND';
+        throw err;
+    }
+    return buildDraftFromHistorique(hist);
+}
 
 /**
  * Jeux de cas de référence pour validation géologue (sans magie ML).
@@ -108,15 +174,45 @@ async function runFixtures() {
 
 async function saveFeedback({ historiqueId, substance, noteSysteme, noteGeologue, commentaire, validateur }) {
     await ensureSchema();
-    const ns = Number(noteSysteme);
+    if (!historiqueId) {
+        const err = new Error('historiqueId requis');
+        err.code = 'HIST_REQUIRED';
+        throw err;
+    }
+    if (!substance || !String(substance).trim()) {
+        const err = new Error('substance requise');
+        err.code = 'SUBSTANCE_REQUIRED';
+        throw err;
+    }
+
+    let ns = noteSysteme != null && noteSysteme !== '' ? Number(noteSysteme) : NaN;
+    if (!Number.isFinite(ns)) {
+        const draft = await getDraftFromHistorique(historiqueId);
+        const match = draft.substances.find(
+            (s) => String(s.substance).toLowerCase() === String(substance).trim().toLowerCase()
+        );
+        if (!match || match.noteSysteme == null) {
+            const err = new Error('Note système introuvable pour cette substance dans l\'historique');
+            err.code = 'NOTE_NOT_FOUND';
+            throw err;
+        }
+        ns = match.noteSysteme;
+    }
+
     const ng = Number(noteGeologue);
+    if (!Number.isFinite(ng) || ng < 1 || ng > 4) {
+        const err = new Error('noteGeologue doit être un entier 1-4');
+        err.code = 'NOTE_GEO_INVALID';
+        throw err;
+    }
+
     const accord = Number.isFinite(ns) && Number.isFinite(ng) ? ns === ng : null;
     const result = await pool.query(
         `INSERT INTO validation_geologue
          (historique_id, substance, note_systeme, note_geologue, accord, commentaire, validateur)
          VALUES ($1,$2,$3,$4,$5,$6,$7)
          RETURNING *`,
-        [historiqueId || null, substance || null, ns || null, ng || null, accord, commentaire || null, validateur || null]
+        [String(historiqueId), String(substance).trim(), ns, ng, accord, commentaire || null, validateur || null]
     );
     return result.rows[0];
 }
@@ -151,4 +247,7 @@ module.exports = {
     listFeedback,
     feedbackStats,
     presenceLabel,
+    labelToNote,
+    buildDraftFromHistorique,
+    getDraftFromHistorique,
 };

@@ -10,7 +10,14 @@ const {
     addPiece,
     buildExportInstruction,
 } = require('./service/instruction');
-const { runFixtures, saveFeedback, listFeedback, feedbackStats } = require('./service/validationMetier');
+const {
+    runFixtures,
+    saveFeedback,
+    listFeedback,
+    feedbackStats,
+    getDraftFromHistorique,
+} = require('./service/validationMetier');
+const { get_historique } = require('./service/historique');
 
 function requireAuth(req, res) {
     if (!req.isAuthenticated || !req.isAuthenticated()) {
@@ -134,6 +141,41 @@ router.get('/validation/fixtures', async (req, res) => {
     }
 });
 
+/** Liste récente d'évaluations pour pré-remplir la validation géologue. */
+router.get('/validation/historiques', async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+        const limit = Math.min(Number(req.query.limit) || 30, 100);
+        const rows = await get_historique();
+        const slim = (rows || []).slice(0, limit).map((h) => ({
+            id: h.id,
+            date: h.date,
+            demandeur: h.demandeur,
+            libelle: h.libelle,
+            substances: (h.results || []).map((r) => r.substance).filter(Boolean),
+        }));
+        return res.json({ historiques: slim });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ erreur: String(error.message || error) });
+    }
+});
+
+/** Brouillon de feedback lié à un historique (plus de saisie manuelle d'ID). */
+router.get('/validation/from-historique/:id', async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+        const draft = await getDraftFromHistorique(req.params.id);
+        return res.json({ ok: true, draft });
+    } catch (error) {
+        if (error.code === 'HIST_NOT_FOUND') {
+            return res.status(404).json({ erreur: error.message });
+        }
+        console.error(error);
+        return res.status(500).json({ erreur: String(error.message || error) });
+    }
+});
+
 router.post('/validation/feedback', async (req, res) => {
     if (!requireAuth(req, res)) return;
     try {
@@ -147,8 +189,17 @@ router.post('/validation/feedback', async (req, res) => {
         });
         return res.json({ ok: true, feedback: row });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ erreur: String(error.message || error) });
+        const status =
+            error.code === 'HIST_REQUIRED' ||
+            error.code === 'SUBSTANCE_REQUIRED' ||
+            error.code === 'NOTE_GEO_INVALID' ||
+            error.code === 'NOTE_NOT_FOUND'
+                ? 400
+                : error.code === 'HIST_NOT_FOUND'
+                    ? 404
+                    : 500;
+        if (status >= 500) console.error(error);
+        return res.status(status).json({ erreur: String(error.message || error) });
     }
 });
 

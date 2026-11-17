@@ -12,6 +12,7 @@ import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import Button from '@mui/material/Button';
 
 function createData(id, date, demandeur, typepermis, libelle, utilisateur, nom, prenom, results) {
   return {
@@ -46,6 +47,17 @@ function Row(props) {
         <TableCell>{row.date}</TableCell>
         <TableCell>{row.libelle}</TableCell>
         <TableCell>{row.nom} {row.prenom}</TableCell>
+        <TableCell>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              window.location.href = `/admin/validation?historiqueId=${encodeURIComponent(row.id)}`;
+            }}
+          >
+            Valider
+          </Button>
+        </TableCell>
       </TableRow>
       <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
@@ -321,6 +333,7 @@ export default function CollapsibleTable(props) {
             <TableCell>Date</TableCell>
             <TableCell>Type de permis</TableCell>
             <TableCell>Utilisateur</TableCell>
+            <TableCell>Action</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
