@@ -8,6 +8,7 @@ const {
     updateStatut,
     addCommentaire,
     addPiece,
+    getTimeline,
     buildExportInstruction,
 } = require('./service/instruction');
 const {
@@ -118,12 +119,25 @@ router.post('/instruction/dossiers/:id/pieces', async (req, res) => {
     }
 });
 
+router.get('/instruction/dossiers/:id/timeline', async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    try {
+        const data = await getTimeline(Number(req.params.id));
+        if (!data) return res.status(404).json({ erreur: 'Dossier introuvable' });
+        return res.json(data);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ erreur: String(error.message || error) });
+    }
+});
+
 router.get('/instruction/dossiers/:id/export', async (req, res) => {
     if (!requireAuth(req, res)) return;
     try {
         const dossier = await getDossier(Number(req.params.id));
         if (!dossier) return res.status(404).json({ erreur: 'Dossier introuvable' });
-        return res.json(buildExportInstruction(dossier));
+        const tl = await getTimeline(Number(req.params.id));
+        return res.json(buildExportInstruction({ ...dossier, timeline: tl?.timeline || [] }));
     } catch (error) {
         console.error(error);
         return res.status(500).json({ erreur: String(error.message || error) });
