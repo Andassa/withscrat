@@ -6,6 +6,7 @@ import Alert from '@mui/material/Alert';
 import { BarChart } from '@mui/x-charts/BarChart';
 import axiosInstance from '../../Lesmomdules/axiosInstance';
 import { bcmm } from '../../theme/bcmm';
+import TerrainObsMap from './TerrainObsMap';
 
 /** Grille IHM 8px : 8 / 16 / 24 */
 const space = {
@@ -107,6 +108,7 @@ function Panel({ title, subtitle, children }) {
 
 export default function TableauDeBord() {
   const [stats, setStats] = React.useState(null);
+  const [terrain, setTerrain] = React.useState({ resume: null, observations: [] });
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
 
@@ -116,8 +118,18 @@ export default function TableauDeBord() {
       setLoading(true);
       setError('');
       try {
-        const res = await axiosInstance.get('/admin/dashboardStats');
-        if (!cancelled) setStats(res.data || {});
+        const [dash, decision] = await Promise.all([
+          axiosInstance.get('/admin/dashboardStats'),
+          axiosInstance.get('/api/decision/dashboard').catch(() => null),
+        ]);
+        if (cancelled) return;
+        setStats(dash.data || {});
+        if (decision?.data) {
+          setTerrain({
+            resume: decision.data.terrainResume || null,
+            observations: decision.data.observationsTerrain || [],
+          });
+        }
       } catch (e) {
         if (!cancelled) setError(e.response?.data?.erreur || 'Impossible de charger le tableau de bord');
       } finally {
@@ -132,6 +144,7 @@ export default function TableauDeBord() {
   const today = Number(stats?.evaluationsAujourdhui ?? 0);
   const topCount = topSubstances.reduce((acc, row) => acc + Number(row.n || 0), 0);
   const notesCount = repartition.reduce((acc, row) => acc + Number(row.n || 0), 0);
+  const terrainTotal = Number(terrain.resume?.total ?? terrain.observations.length ?? 0);
 
   if (loading) {
     return (
@@ -183,7 +196,8 @@ export default function TableauDeBord() {
           display: 'grid',
           gridTemplateColumns: {
             xs: '1fr',
-            sm: 'repeat(3, minmax(0, 1fr))',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            md: 'repeat(4, minmax(0, 1fr))',
           },
           gap: space.md,
           width: '100%',
@@ -203,6 +217,11 @@ export default function TableauDeBord() {
           label="Notes enregistrées"
           value={notesCount}
           hint="Répartition ScoreEngine 1 à 4"
+        />
+        <KpiCard
+          label="Observations terrain"
+          value={terrainTotal}
+          hint={`${terrain.resume?.avecCoordonnees ?? 0} géolocalisées · ${terrain.resume?.avecPhoto ?? 0} avec photo`}
         />
       </Box>
 
@@ -340,6 +359,63 @@ export default function TableauDeBord() {
                   </Box>
                 );
               })}
+            </Box>
+          )}
+        </Panel>
+      </Box>
+
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            lg: 'minmax(0, 1.2fr) minmax(260px, 1fr)',
+          },
+          gap: space.md,
+          width: '100%',
+          alignItems: 'start',
+        }}
+      >
+        <Panel
+          title="Carte des observations terrain"
+          subtitle="Points synchronisés depuis mmtrace (mobile)"
+        >
+          {terrain.observations.length === 0 ? (
+            <Typography sx={{ color: bcmm.ink.muted, fontSize: 13, lineHeight: 1.4 }}>
+              Aucune observation terrain pour le moment.
+            </Typography>
+          ) : (
+            <TerrainObsMap observations={terrain.observations} height={280} />
+          )}
+        </Panel>
+        <Panel
+          title="Dernières observations"
+          subtitle="Flux terrain récent"
+        >
+          {terrain.observations.length === 0 ? (
+            <Typography sx={{ color: bcmm.ink.muted, fontSize: 13, lineHeight: 1.4 }}>
+              En attente de sync mobile.
+            </Typography>
+          ) : (
+            <Box component="ul" sx={{ m: 0, p: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: space.sm }}>
+              {terrain.observations.slice(0, 8).map((o) => (
+                <Box
+                  component="li"
+                  key={o.id}
+                  sx={{
+                    py: 0.75,
+                    borderBottom: `1px solid ${bcmm.surface.border}`,
+                  }}
+                >
+                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: bcmm.ink.body }}>
+                    {o.substance || 'Sans substance'}
+                  </Typography>
+                  <Typography sx={{ fontSize: 12, color: bcmm.ink.muted }}>
+                    {Number.isFinite(Number(o.lat)) ? `${Number(o.lat).toFixed(4)}, ${Number(o.lon).toFixed(4)}` : 'Sans GPS'}
+                    {o.synced_at ? ` · ${new Date(o.synced_at).toLocaleString()}` : ''}
+                  </Typography>
+                </Box>
+              ))}
             </Box>
           )}
         </Panel>

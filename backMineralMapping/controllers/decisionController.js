@@ -6,7 +6,12 @@ const { createMultiPolygonGeoJSON } = require('./service/Carre');
 const { getLitho } = require('./service/lithology');
 const { suggestSubstancesFromLitho } = require('./service/suggestions');
 const { runEvaluationPipeline, compareZones, buildDossier } = require('./service/evaluationPipeline');
-const { saveObservation, listObservations } = require('./service/terrain');
+const {
+    saveObservation,
+    listObservations,
+    summarizeObservations,
+    toFeatureCollection,
+} = require('./service/terrain');
 const { get_dashboard_stats, get_historique } = require('./service/historique');
 
 function requireAuth(req, res) {
@@ -131,12 +136,14 @@ router.get('/decision/dashboard', async (req, res) => {
         const [stats, historiques, terrain] = await Promise.all([
             get_dashboard_stats(),
             get_historique(),
-            listObservations({ limit: 10 }),
+            listObservations({ limit: 50 }),
         ]);
         return res.json({
             ...stats,
             derniersDossiers: (historiques || []).slice(0, 8),
-            observationsTerrain: terrain,
+            observationsTerrain: terrain.slice(0, 10),
+            terrainResume: summarizeObservations(terrain),
+            terrainGeoJSON: toFeatureCollection(terrain),
             alertes: {
                 message: 'Surveillez les chevauchements via /decision/conflits avant validation.',
             },
@@ -174,7 +181,14 @@ router.get('/terrain/observations', async (req, res) => {
     if (!requireAuth(req, res)) return;
     try {
         const rows = await listObservations({ limit: req.query.limit });
-        return res.json({ observations: rows });
+        const payload = {
+            observations: rows,
+            resume: summarizeObservations(rows),
+        };
+        if (String(req.query.format || '').toLowerCase() === 'geojson') {
+            payload.geojson = toFeatureCollection(rows);
+        }
+        return res.json(payload);
     } catch (error) {
         console.error(error);
         return res.status(500).json({ erreur: String(error.message || error) });
